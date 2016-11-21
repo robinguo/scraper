@@ -44,9 +44,9 @@ class AirbnbListingPipeline(object):
 
         if ret:
             conn.execute('''
-                UPDATE lisiting SET name = %s, host_id = %s, star_rating = %s,
+                UPDATE listing SET name = %s, host_id = %s, star_rating = %s,
                 visible_review_count =%s, summary = %s, is_business_travel_ready = %s,
-                instant_bookable = %s, accomodates = %s, bathrooms = %s, bedrooms = %s,
+                instant_bookable = %s, city = %s, accomodates = %s, bathrooms = %s, bedrooms = %s,
                 beds = %s , checkin = %s, checkout = %s, property_type = %s,
                 room_type = %s, bed_type = %s, pet_owner = %s, cancellation_policy = %s,
                 cleaning_fee = %s, extra_people = %s, monthly_discount = %s,
@@ -64,7 +64,7 @@ class AirbnbListingPipeline(object):
             ''', (item['name'], item['host_id'],
              item['star_rating'], item['visible_review_count'],
              item['summary'], item['is_business_travel_ready'],
-             item['instant_bookable'], item['accomodates'],
+             item['instant_bookable'], item['city'], item['accomodates'],
              item['bathrooms'], item['bedrooms'], item['beds'],
              item['checkin'], item['checkout'],
              item['property_type'], item['room_type'], item['bed_type'],
@@ -90,7 +90,7 @@ class AirbnbListingPipeline(object):
             conn.execute('''INSERT INTO listing (
                                     id, name, host_id, star_rating, visible_review_count,
                                     summary, is_business_travel_ready, instant_bookable,
-                                    accomodates, bathrooms, bedrooms, beds, checkin,
+                                    city, accomodates, bathrooms, bedrooms, beds, checkin,
                                     checkout, property_type, room_type, bed_type,
                                     pet_owner, cancellation_policy, cleaning_fee, extra_people,
                                     monthly_discount, monthly_price, permit, security_deposit,
@@ -106,11 +106,11 @@ class AirbnbListingPipeline(object):
                                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                    %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
                             (item['listing_id'], item['name'], item['host_id'],
                              item['star_rating'], item['visible_review_count'],
                              item['summary'], item['is_business_travel_ready'],
-                             item['instant_bookable'], item['accomodates'],
+                             item['instant_bookable'], item['city'], item['accomodates'],
                              item['bathrooms'], item['bedrooms'], item['beds'],
                              item['checkin'], item['checkout'],
                              item['property_type'], item['room_type'], item['bed_type'],

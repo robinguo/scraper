@@ -12,6 +12,7 @@ class AirbnbListingItem(scrapy.Item):
     summary = scrapy.Field()
     is_business_travel_ready = scrapy.Field()
     instant_bookable = scrapy.Field()
+    city = scrapy.Field()
 
     # space interface
     accomodates = scrapy.Field()

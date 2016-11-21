@@ -3,6 +3,7 @@ import scrapy
 import json
 from scraper.airbnb_listing_items import AirbnbListingItem
 from urlparse import urlparse
+import MySQLdb
 
 URL_ROOT = "https://www.airbnb.com/"
 URL_ROOM_ROOT = URL_ROOT + "rooms/"
@@ -20,15 +21,18 @@ class AirbnbSpider(scrapy.Spider):
     name = "airbnb"
     allowed_domains = ["airbnb.com"]
     start_urls = [constuct_request_url(SW_LAT, SW_LNG, NE_LAT, NE_LNG), ]
+    scraped_ids = []
+
+    def __init__(self):
+        conn = MySQLdb.connect(host = '127.0.0.1', user = 'root', passwd = 'bobobo', db = 'airbnb')
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM listing')
+        for row in cursor.fetchall():
+            self.scraped_ids.append(row[0])
+        cursor.close()
+        conn.close()
 
     def parse(self, response):
-        # self.logger.warning(response.body)
-        # sw_lat = ''
-        # sw_lng = ''
-        # ne_lat = ''
-        # ne_lng = ''
-        # offset = ''
-        # limit = ''
         url = response.url
         query = urlparse(url).query
         params = query.split('&')
@@ -55,12 +59,15 @@ class AirbnbSpider(scrapy.Spider):
             self.logger.error('error_code: %s', results['error_code'])
             self.logger.error('error_detail: %s', results['error_detail'])
         elif results['metadata']['listings_count'] < 1001:
-            self.logger.info('Total listings =  %s', results['metadata']['listings_count'])
-            for result in results['search_results']:
-                yield scrapy.Request(URL_ROOM_ROOT + str(result['listing']['id']) + '?locale=en&currency=CNY', callback = self.parse_item)
-            offset = results['metadata']['pagination']['next_offset']
-            yield scrapy.Request(constuct_request_url(sw_lat, sw_lng, ne_lat, ne_lng, offset), callback = self.parse)
+            self.logger.info('sw_lat = %s, sw_lng = %s, ne_lat = %s, ne_lng = %s, limit = %s, offset = %s, total listings =  %s', sw_lat, sw_lng, ne_lat, ne_lng, limit, offset, results['metadata']['listings_count'])
+            if results['metadata']['pagination']['result_count'] > 0:
+                for result in results['search_results']:
+                    if result['listing']['id'] not in self.scraped_ids:
+                        yield scrapy.Request(URL_ROOM_ROOT + str(result['listing']['id']) + '?locale=en&currency=CNY', callback = self.parse_item)
+                offset = results['metadata']['pagination']['next_offset']
+                yield scrapy.Request(constuct_request_url(sw_lat, sw_lng, ne_lat, ne_lng, offset), callback = self.parse)
         else:
+            self.logger.info('sw_lat = %s, sw_lng = %s, ne_lat = %s, ne_lng = %s, limit = %s, offset = %s, total listings =  %s', sw_lat, sw_lng, ne_lat, ne_lng, limit, offset, results['metadata']['listings_count'])
             mid_lat = (ne_lat + sw_lat) / 2.0
             mid_lng = (ne_lng + sw_lng) / 2.0
             yield scrapy.Request(constuct_request_url(sw_lat, sw_lng, mid_lat, mid_lng), callback = self.parse)
@@ -80,6 +87,7 @@ class AirbnbSpider(scrapy.Spider):
         item['summary'] = listing['summary']
         item['is_business_travel_ready'] = listing['is_business_travel_ready']
         item['instant_bookable'] = listing['instant_bookable']
+        item['city'] = listing['city']
 
         space_interface = listing['space_interface']
         item['accomodates'] = '0'
@@ -118,25 +126,22 @@ class AirbnbSpider(scrapy.Spider):
 
         price_interface = listing['price_interface']
         item['cancellation_policy'] = price_interface['cancellation_policy']['value'] if price_interface['cancellation_policy'] else ''
-        item['cleaning_fee'] = price_interface['cleaning_fee']['value'][1:] if price_interface['cleaning_fee'] else ''
+        item['cleaning_fee'] = price_interface['cleaning_fee']['value'][1:] if price_interface['cleaning_fee'] else '0'
         item['extra_people'] = price_interface['extra_people']['value'] if price_interface['extra_people'] else ''
-        item['monthly_discount'] = price_interface['monthly_discount']['value'][:-1] if price_interface['monthly_discount'] else ''
-        # item['monthly_price'] = price_interface['monthly_price']['value'] if price_interface['monthly_price'] else ''
+        item['monthly_discount'] = price_interface['monthly_discount']['value'][:-1] if price_interface['monthly_discount'] else '0'
         if price_interface['monthly_price']:
             monthly_price = price_interface['monthly_price']['value']
             item['monthly_price'] = monthly_price[1:monthly_price.index(' ')]
         else:
             item['monthly_price'] = '0'
         item['permit'] = price_interface['permit']['value'] if price_interface['permit'] else ''
-        item['security_deposit'] = price_interface['security_deposit']['value'][1:] if price_interface['security_deposit'] else ''
-        item['weekly_discount'] = price_interface['weekly_discount']['value'][:-1] if price_interface['weekly_discount'] else ''
-        # item['weekly_price'] = price_interface['weekly_price']['value'] if price_interface['weekly_price'] else ''
+        item['security_deposit'] = price_interface['security_deposit']['value'][1:] if price_interface['security_deposit'] else '0'
+        item['weekly_discount'] = price_interface['weekly_discount']['value'][:-1] if price_interface['weekly_discount'] else '0'
         if price_interface['weekly_price']:
             weekly_price = price_interface['weekly_price']['value']
-            item['weekly_price'] = monthly_price[1:weekly_price.index(' ')]
+            item['weekly_price'] = weekly_price[1:weekly_price.index(' ')]
         else:
             item['weekly_price'] = '0'
-        # item['weekend_price'] = price_interface['weekend_price']['value'] if price_interface['weekend_price'] else ''
         if price_interface['weekend_price']:
             weekend_price = price_interface['weekend_price']['value']
             item['weekend_price'] = weekend_price[1:weekend_price.index(' ')]

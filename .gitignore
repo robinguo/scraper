@@ -88,3 +88,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# ctags
+.tags
+.tags_sorted_by_file
